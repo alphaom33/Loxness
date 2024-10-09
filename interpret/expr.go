@@ -37,3 +37,8 @@ type Unary struct {
 type Variable struct {
   Name token.Token
 }
+
+type Assign struct {
+  Name token.Token
+  Value Expr
+}

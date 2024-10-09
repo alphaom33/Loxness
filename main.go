@@ -56,7 +56,6 @@ func run(source string) {
 	tokens := scan.ScanTokens(scanner)
 
 	statements := parse.Parse(tokens)
-	fmt.Println(statements)
 	if loxError.HadError {return}
 
 	interpret.Interpret(statements)

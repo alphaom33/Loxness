@@ -2,9 +2,9 @@ package parse
 
 import (
 	"errors"
+	. "lox/interpret"
 	"lox/loxError"
 	"lox/token"
-    . "lox/interpret"
 )
 
 var tokens []token.Token
@@ -14,6 +14,7 @@ func Parse(p_tokens []token.Token) []Stmt {
     tokens = p_tokens
     current = 0
     var statements []Stmt
+    
     for !isAtEnd() {
         statements = append(statements, declaration())
     }
@@ -28,7 +29,7 @@ func declaration() Stmt {
     if match(token.VAR) {
         out, err = varDeclaration()
     } else {
-        out = statement()
+        out, err = statement()
     }
     
     if err != nil {
@@ -57,21 +58,48 @@ func varDeclaration() (Stmt, error) {
 
 
 
-func statement() Stmt {
+func statement() (Stmt, error) {
     if (match(token.PRINT)) {return printStatement()}
     return expressionStatement()
 }
 
-func printStatement() Stmt {
-    value, _ := comma()
-    consume(token.SEMICOLON, "Expect ';' after value.")
-    return Print{value}
+func printStatement() (Stmt, error) {
+    value, err := comma()
+    if err != nil {return nil, err}
+    _, err = consume(token.SEMICOLON, "Expect ';' after value.")
+    if err != nil {return nil, err}
+    return Print{value}, nil
 }
 
-func expressionStatement() Stmt {
-    expre, _ := comma()
-    consume(token.SEMICOLON, "Expect ';' after expression.")
-    return Expression{expre}
+func expressionStatement() (Stmt, error) {
+    expre, err := comma()
+    if err != nil {return nil, err}
+    
+    _, err = consume(token.SEMICOLON, "Expect ';' after expression.")
+    if err != nil {return nil, err}
+    
+    return Expression{expre}, nil
+}
+
+func assignment() (Expr, error) {
+    expr, err := equality()
+    if err != nil {return nil, err}
+
+    if match(token.EQUAL) {
+        equals := previous()
+        value, err := assignment()
+        if err != nil {return value, err}
+
+        v, ok := expr.(Variable)
+        if ok {
+            name := v.Name
+            return Assign{name, value}, nil
+        }
+
+        parseError(equals, "Invalid assignment target.")
+    }
+
+    return expr, nil
 }
 
 func comma() (Expr, error) {
@@ -220,6 +248,7 @@ func match(types... token.TokenType) bool {
 func consume(tokenType token.TokenType, message string) (token.Token, error) {
     if check(tokenType) {return advance(), nil}
 
+    loxError.Error(tokens[current].Line, message)
     return peek(), errors.New(message)
 }
 

@@ -102,8 +102,15 @@ func (e Binary) VisitExpr() (any, error) {
   return nil, nil
 }
 
-func  (e Variable) VisitExpr() (any, error) {
+func (e Variable) VisitExpr() (any, error) {
   return environment.Get(env, e.Name)
+}
+
+func (e Assign) VisitExpr() (any, error) {
+  value, err := evaluate(e.Value)
+  if err != nil {return nil, err}
+  environment.Assign(&env, e.Name, value)
+  return value, nil
 }
 
 func evaluate(expression Expr) (any, error) {

@@ -30,6 +30,10 @@ func (e Variable) AstPrint() string {
   return parenthesize(e.Name.Lexeme)
 }
 
+func (e Assign) AstPrint() string {
+  return parenthesize(fmt.Sprintf("= %s", e.Name.Lexeme), e.Value)
+}
+
 func parenthesize(name string, exprs... Expr) string {
   builder := strings.Builder{}
   builder.WriteString("(")

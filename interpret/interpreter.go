@@ -6,10 +6,9 @@ import (
 	"lox/loxError"
 )
 
-var env environment.Environment
+var env environment.Environment = environment.MakeEnvironment()
 
 func Interpret(statements []Stmt) {
-  fmt.Println(statements)
   for _, statement := range statements {
     err := execute(statement)
     if err != nil {
@@ -40,13 +39,12 @@ func (e Var) VisitStmt() error {
     if err != nil {return err}
   }
 
-  environment.Define(env, e.Name.Lexeme, value)
+  env = *environment.Define(&env, e.Name.Lexeme, value)
   return nil
 }
 
 
 func execute(stmt Stmt) error {
-  fmt.Print(stmt)
   return stmt.VisitStmt()
 }
 
