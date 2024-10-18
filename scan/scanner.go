@@ -1,7 +1,6 @@
 package scan
 
 import (
-	"fmt"
 	"strconv"
   "lox/loxError"
   . "lox/token"
@@ -156,7 +155,6 @@ func blockComment(scanner *scanner) {
   for numComments > 0 && scanner.current < len(scanner.source) - 1 {
     if peek(scanner) == '/' && peekNext(scanner) == '*' {
       numComments++
-      fmt.Println("asdf")
     } else if peek(scanner) == '*' && peekNext(scanner) == '/' {
       numComments--
     }

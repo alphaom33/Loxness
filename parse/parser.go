@@ -60,7 +60,19 @@ func varDeclaration() (Stmt, error) {
 
 func statement() (Stmt, error) {
     if (match(token.PRINT)) {return printStatement()}
+    if (match(token.LEFT_BRACE)) {return Block{block()}, nil}
     return expressionStatement()
+}
+
+func block() []Stmt {
+    var statements []Stmt
+
+    for !check(token.RIGHT_BRACE) && !isAtEnd() {
+        statements = append(statements, declaration())
+    }
+
+    consume(token.RIGHT_BRACE, "Expect '}' after block.")
+    return statements
 }
 
 func printStatement() (Stmt, error) {

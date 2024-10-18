@@ -16,7 +16,7 @@ func main() {
 		fmt.Println("Usage: jlox [script]");
 		os.Exit(64);
 	} else if len(os.Args) - 1 == 1 {
-		runFile(os.Args[0])
+		runFile(os.Args[1])
 	} else {
 		runPrompt();
 	}
@@ -24,7 +24,7 @@ func main() {
 
 func runFile(path string) {
 	code, err := os.ReadFile(path)
-	if (err != nil) {
+	if err == nil {
 		run(string(code))
 	}
 

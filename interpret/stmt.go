@@ -2,10 +2,15 @@ package interpret
 
 import (
 	"lox/token"
+  "lox/environment"
 )
 
 type Stmt interface {
-  VisitStmt() error
+  VisitStmt(environment.Environment) error
+}
+
+type Block struct {
+  Statements []Stmt
 }
 
 type Expression struct {

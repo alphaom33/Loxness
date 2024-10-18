@@ -2,11 +2,12 @@ package  interpret
 
 import (
   "lox/token"
+  "lox/environment"
 )
 
 type Expr interface {
   AstPrint() string
-  VisitExpr() (any, error)
+  VisitExpr(environment.Environment) (any, error)
 }
 
 type Ternary struct {

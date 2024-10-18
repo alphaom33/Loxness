@@ -7,16 +7,16 @@ import (
 	"lox/token"
 )
 
-func (e Literal) VisitExpr() (any, error) {
+func (e Literal) VisitExpr(_ environment.Environment) (any, error) {
   return e.Value, nil
 }
 
-func (e Grouping) VisitExpr() (any, error) {
-  return evaluate(e.Expression)
+func (e Grouping) VisitExpr(env environment.Environment) (any, error) {
+  return evaluate(e.Expression, env)
 }
 
-func (e Unary) VisitExpr() (any, error) {
-  right, err := evaluate(e.Right)
+func (e Unary) VisitExpr(env environment.Environment) (any, error) {
+  right, err := evaluate(e.Right, env)
   if err != nil {return nil, err}
 
   switch e.Operator.TokenType {
@@ -31,14 +31,14 @@ func (e Unary) VisitExpr() (any, error) {
   return nil, nil
 }
 
-func (e Ternary) VisitExpr() (any, error) {
+func (e Ternary) VisitExpr(_ environment.Environment) (any, error) {
   return nil, nil
 }
 
-func (e Binary) VisitExpr() (any, error) {
-  left, err := evaluate(e.Left)
+func (e Binary) VisitExpr(env environment.Environment) (any, error) {
+  left, err := evaluate(e.Left, env)
   if err != nil {return nil, err}
-  right, err := evaluate(e.Right)
+  right, err := evaluate(e.Right, env)
   if err != nil {return nil, err}
 
   switch e.Operator.TokenType {
@@ -102,19 +102,19 @@ func (e Binary) VisitExpr() (any, error) {
   return nil, nil
 }
 
-func (e Variable) VisitExpr() (any, error) {
-  return environment.Get(env, e.Name)
+func (e Variable) VisitExpr(env environment.Environment) (any, error) {
+  return environment.Get(&env, e.Name)
 }
 
-func (e Assign) VisitExpr() (any, error) {
-  value, err := evaluate(e.Value)
+func (e Assign) VisitExpr(env environment.Environment) (any, error) {
+  value, err := evaluate(e.Value, env)
   if err != nil {return nil, err}
   environment.Assign(&env, e.Name, value)
   return value, nil
 }
 
-func evaluate(expression Expr) (any, error) {
-  return expression.VisitExpr()
+func evaluate(expression Expr, env environment.Environment) (any, error) {
+  return expression.VisitExpr(env)
 }
 
 func isTruthy(thing any) bool {

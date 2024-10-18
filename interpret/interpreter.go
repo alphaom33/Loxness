@@ -6,11 +6,11 @@ import (
 	"lox/loxError"
 )
 
-var env environment.Environment = environment.MakeEnvironment()
+var globalEnv environment.Environment = environment.MakeEnvironment(nil, "asdf")
 
 func Interpret(statements []Stmt) {
   for _, statement := range statements {
-    err := execute(statement)
+    err := execute(statement, globalEnv)
     if err != nil {
       rE, _ := err.(loxError.RuntimeError)
       loxError.ThrowRuntimeError(rE)
@@ -19,33 +19,45 @@ func Interpret(statements []Stmt) {
   }
 }
 
-func (e Expression) VisitStmt() error {
-  e.Expression.VisitExpr()
+func (e Expression) VisitStmt(env environment.Environment) error {
+  e.Expression.VisitExpr(env)
   return nil
 }
 
-func (e Print) VisitStmt() error {
-  val, _ := e.Expression.VisitExpr()
+func (e Print) VisitStmt(env environment.Environment) error {
+  val, _ := e.Expression.VisitExpr(env)
   fmt.Println(Stringify(val))
 
   return nil
 }
 
-func (e Var) VisitStmt() error {
+func (e Var) VisitStmt(env environment.Environment) error {
   var value any
   if e.Initializer != nil {
     var err error
-    value, err = e.Initializer.VisitExpr()
+    value, err = e.Initializer.VisitExpr(env)
     if err != nil {return err}
   }
 
-  env = *environment.Define(&env, e.Name.Lexeme, value)
+  environment.Define(&env, e.Name.Lexeme, value)
   return nil
 }
 
+func (e Block) VisitStmt(env environment.Environment) error {
+  executeBlock(e.Statements, environment.MakeEnvironment(&env, ""))
+  return nil
+}
 
-func execute(stmt Stmt) error {
-  return stmt.VisitStmt()
+func execute(stmt Stmt, env environment.Environment) error {
+  return stmt.VisitStmt(env)
+}
+
+func executeBlock(statements []Stmt, newEnv environment.Environment) error {
+  for _, statement := range statements {
+    err := execute(statement, newEnv)
+    if err != nil {return err}
+  }
+  return nil
 }
 
 func Stringify(object any) string {
