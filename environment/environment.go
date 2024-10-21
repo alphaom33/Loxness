@@ -18,6 +18,17 @@ func MakeEnvironment(parent *Environment, n string) Environment {
 }
 
 func Define(e *Environment, name string, value any) {
+  env := e
+  for env != nil {
+    _, ok := env.values[name]
+    if ok {
+      env.values[name] = value
+      return
+    }
+    
+    env = env.enclosing
+  }
+
   e.values[name] = value 
 }
 

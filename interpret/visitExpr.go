@@ -103,7 +103,16 @@ func (e Binary) VisitExpr(env environment.Environment) (any, error) {
 }
 
 func (e Variable) VisitExpr(env environment.Environment) (any, error) {
-  return environment.Get(&env, e.Name)
+  val, err := environment.Get(&env, e.Name)
+  if err != nil {
+    return nil, err}
+
+  _, ok := val.(Undefined)
+  if ok {
+    return nil, loxError.RuntimeError{e.Name, "Variable " + e.Name.Lexeme + " is not defined."}
+  }
+
+  return val, nil
 }
 
 func (e Assign) VisitExpr(env environment.Environment) (any, error) {
@@ -111,6 +120,10 @@ func (e Assign) VisitExpr(env environment.Environment) (any, error) {
   if err != nil {return nil, err}
   environment.Assign(&env, e.Name, value)
   return value, nil
+}
+
+func (e Undefined) VisitExpr(_ environment.Environment) (any, error) {
+  return nil, nil
 }
 
 func evaluate(expression Expr, env environment.Environment) (any, error) {

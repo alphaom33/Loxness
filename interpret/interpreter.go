@@ -25,14 +25,15 @@ func (e Expression) VisitStmt(env environment.Environment) error {
 }
 
 func (e Print) VisitStmt(env environment.Environment) error {
-  val, _ := e.Expression.VisitExpr(env)
+  val, err := e.Expression.VisitExpr(env)
+  if err != nil {return err}
   fmt.Println(Stringify(val))
 
   return nil
 }
 
 func (e Var) VisitStmt(env environment.Environment) error {
-  var value any
+  var value any = Undefined{}
   if e.Initializer != nil {
     var err error
     value, err = e.Initializer.VisitExpr(env)

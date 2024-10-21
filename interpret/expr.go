@@ -43,3 +43,7 @@ type Assign struct {
   Name token.Token
   Value Expr
 }
+
+type Undefined struct {
+  
+}
