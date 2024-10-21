@@ -46,7 +46,7 @@ func varDeclaration() (Stmt, error) {
 
     var initializer Expr
     if match(token.EQUAL) {
-        initializer, err = comma()
+        initializer, err = expression()
         if err != nil {return nil, err}
     }
 
@@ -59,9 +59,86 @@ func varDeclaration() (Stmt, error) {
 
 
 func statement() (Stmt, error) {
+    if (match(token.FOR)) {return forStatement()}
+    if (match(token.IF)) {return ifStatement()}
     if (match(token.PRINT)) {return printStatement()}
+    if (match(token.WHILE)) {return whileStatement()}
     if (match(token.LEFT_BRACE)) {return Block{block()}, nil}
     return expressionStatement()
+}
+
+func forStatement() (Stmt, error) {
+    consume(token.LEFT_PAREN, "Expect '(' after 'for'.")
+
+    var initializer Stmt
+    var err error
+    if (match(token.SEMICOLON)) {
+        initializer = nil
+    } else if (match(token.VAR)) {
+        initializer, err = varDeclaration()
+    } else {
+        initializer, err = expressionStatement()
+    }
+    if err != nil {return initializer, err}
+
+    var condition Expr
+    if !check(token.SEMICOLON) {
+        condition, err = expression()
+        if err != nil {return nil, err}
+    }
+    consume(token.SEMICOLON, "Expect ';' after loop condition")
+
+    var increment Expr
+    if !check(token.RIGHT_PAREN) {
+        increment, err = expression()
+        if err != nil {return nil, err}
+    }
+    consume(token.RIGHT_PAREN, "Expect ')' after for clauses")
+    
+    body, err := statement()
+    if err != nil {return body, err}
+
+    if increment != nil {
+        body = Block{[]Stmt{body, Expression{increment}}}
+    }
+    
+    if condition == nil {condition = Literal{true}}
+    body = While{condition, body}
+
+    if initializer != nil {
+        body = Block{[]Stmt{initializer, body}}
+    }
+    
+    return body, nil
+}
+
+func whileStatement() (Stmt, error) {
+    consume(token.LEFT_PAREN, "Expect '(' after 'while'.")
+    condition, err := expression()
+    if err != nil {return nil, err}
+    
+    consume(token.RIGHT_PAREN, "Expect '(' after 'while'.")
+    body, err := statement()
+    if err != nil {return nil, err}
+
+    return While{condition, body}, nil
+}
+
+func ifStatement() (Stmt, error) {
+    consume(token.LEFT_PAREN, "Expect '(' after 'if'.") 
+    condition, err := expression() 
+    if err != nil {return nil, err}
+    consume(token.RIGHT_PAREN, "Expect ')' after if condition.")
+
+    thenBranch, err := statement()
+    if err != nil {return nil, err}
+    var elseBranch Stmt = nil
+    if (match(token.ELSE)) {
+        elseBranch, err = statement()
+        if err != nil {return nil, err}
+    }
+
+    return If{condition, thenBranch, elseBranch}, nil
 }
 
 func block() []Stmt {
@@ -76,7 +153,7 @@ func block() []Stmt {
 }
 
 func printStatement() (Stmt, error) {
-    value, err := comma()
+    value, err := expression()
     if err != nil {return nil, err}
     _, err = consume(token.SEMICOLON, "Expect ';' after value.")
     if err != nil {return nil, err}
@@ -84,7 +161,7 @@ func printStatement() (Stmt, error) {
 }
 
 func expressionStatement() (Stmt, error) {
-    expre, err := comma()
+    expre, err := expression()
     if err != nil {return nil, err}
     
     _, err = consume(token.SEMICOLON, "Expect ';' after expression.")
@@ -94,7 +171,7 @@ func expressionStatement() (Stmt, error) {
 }
 
 func assignment() (Expr, error) {
-    expr, err := equality()
+    expr, err := or()
     if err != nil {return nil, err}
 
     if match(token.EQUAL) {
@@ -114,23 +191,37 @@ func assignment() (Expr, error) {
     return expr, nil
 }
 
-func comma() (Expr, error) {
-    expression, err := ternary()
-    if err != nil {return expression, err}
+func or() (Expr, error) {
+    expr, err := and()
+    if err != nil {return expr, err}
 
-    for (match(token.COMMA)) {
+    for match(token.OR) {
         operator := previous()
-        right, err := ternary()
+        right, err := and()
         if err != nil {return right, err}
-        expression = Binary{expression, operator, right}
+
+        expr = Logical{expr, operator, right}
     }
 
-    return expression, nil
+    return expr, nil
 }
 
+func and() (Expr, error) {
+    expr, err := equality()
+    if err != nil {return expr, err}
+
+    for match(token.AND) {
+        operator := previous()
+        right, err := equality()
+        if err != nil {return right, err}
+        expr = Logical{expr, operator, right}
+    }
+
+    return expr, nil
+}
 
 func expression() (Expr, error) {
-    return ternary()
+    return assignment()
 }
 
 func ternary() (Expr, error) {

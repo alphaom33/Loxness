@@ -40,12 +40,37 @@ func (e Var) VisitStmt(env environment.Environment) error {
     if err != nil {return err}
   }
 
-  environment.Define(&env, e.Name.Lexeme, value)
+  return environment.Define(&env, e.Name.Lexeme, value)
+}
+
+func (e While) VisitStmt(env environment.Environment) error {
+  val, err := evaluate(e.Condition, env)
+  if err != nil {return err}
+  for isTruthy(val) {
+    err = execute(e.Body, env)
+    if err != nil {return err}
+    
+    val, err = evaluate(e.Condition, env)
+    if err != nil {return err}
+  }
+
   return nil
 }
 
 func (e Block) VisitStmt(env environment.Environment) error {
   executeBlock(e.Statements, environment.MakeEnvironment(&env, ""))
+  return nil
+}
+
+func (e If) VisitStmt(env environment.Environment) error {
+  b, err := evaluate(e.Condition, env)
+  if err != nil {return err}
+  if isTruthy(b) {
+    return execute(e.ThenBranch, env)
+  } else if e.ElseBranch != nil {
+    return execute(e.ThenBranch, env)
+  }
+
   return nil
 }
 

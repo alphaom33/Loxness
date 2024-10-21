@@ -30,6 +30,12 @@ type Literal struct {
   Value any
 }
 
+type Logical struct {
+  Left Expr
+  Operator token.Token
+  Right Expr
+}
+
 type Unary struct {
   Operator token.Token
   Right Expr

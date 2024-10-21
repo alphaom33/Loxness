@@ -17,19 +17,19 @@ func MakeEnvironment(parent *Environment, n string) Environment {
   return a
 }
 
-func Define(e *Environment, name string, value any) {
+func Define(e *Environment, name string, value any) error {
   env := e
   for env != nil {
     _, ok := env.values[name]
     if ok {
-      env.values[name] = value
-      return
+      return loxError.RuntimeError{token.Token{}, fmt.Sprintf("Variable '%s' is already defined in this scope", env.name)}
     }
     
     env = env.enclosing
   }
 
   e.values[name] = value 
+  return nil
 }
 
 func Get(e *Environment, name token.Token) (any, error) {

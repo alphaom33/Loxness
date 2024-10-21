@@ -11,6 +11,19 @@ func (e Literal) VisitExpr(_ environment.Environment) (any, error) {
   return e.Value, nil
 }
 
+func (e Logical) VisitExpr(env environment.Environment) (any, error) {
+  left, err := evaluate(e.Left, env)
+  if err != nil {return left, err}
+
+  if e.Operator.TokenType == token.OR {
+    if isTruthy(left) {return left, nil}
+  } else {
+    if isTruthy(left) {return left, nil}
+  }
+
+  return evaluate(e.Right, env)
+}
+
 func (e Grouping) VisitExpr(env environment.Environment) (any, error) {
   return evaluate(e.Expression, env)
 }
