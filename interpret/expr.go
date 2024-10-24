@@ -22,6 +22,12 @@ type Binary struct {
   Right Expr
 }
 
+type Call struct {
+  Callee Expr
+  Paren token.Token
+  Arguments []Expr
+}
+
 type Grouping struct {
   Expression Expr
 }

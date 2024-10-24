@@ -51,6 +51,8 @@ const (
   VAR
   WHILE
 
+  BREAK
+
   EOF
 )
 
@@ -118,6 +120,8 @@ func (e TokenType) String() string {
     return "VAR"
   case WHILE:
     return "WHILE"
+  case BREAK:
+    return "BREAK"
   case EOF:
     return "EOF"
   default:

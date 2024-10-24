@@ -17,6 +17,12 @@ type Expression struct {
   Expression Expr
 }
 
+type Function struct {
+  Name token.Token
+  Params []token.Token
+  Body []Stmt
+}
+
 type If struct {
   Condition Expr
   ThenBranch Stmt
@@ -35,4 +41,7 @@ type Var struct {
 type While struct {
   Condition Expr
   Body Stmt
+}
+
+type Break struct {
 }

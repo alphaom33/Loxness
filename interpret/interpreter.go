@@ -1,14 +1,47 @@
 package interpret
 
 import (
+	"errors"
 	"fmt"
 	"lox/environment"
 	"lox/loxError"
+	"time"
 )
 
 var globalEnv environment.Environment = environment.MakeEnvironment(nil, "asdf")
 
+type ProtoLoxCallable struct {
+  callMethod func(env environment.Environment, arguments []any) (any, error)
+  arityMethod func() int
+  stringMethod func() string
+}
+
+func (p ProtoLoxCallable) Call(env environment.Environment, arguments []any) (any, error) {
+  return p.callMethod(env, arguments)
+}
+
+func (p ProtoLoxCallable) Arity() int {
+  return p.arityMethod()
+}
+
+func (p ProtoLoxCallable) String() string {
+  return p.stringMethod()
+}
+
 func Interpret(statements []Stmt) {
+  environment.Define(&globalEnv, "clock", ProtoLoxCallable{
+    arityMethod: func() int {
+      return 0
+    },
+    
+    callMethod: func(env environment.Environment, arguments []any) (any, error) {
+      return time.Now().UnixMilli() / 1000, nil
+    },
+    stringMethod: func() string {
+      return "<native fn>"
+    },
+  })
+  
   for _, statement := range statements {
     err := execute(statement, globalEnv)
     if err != nil {
@@ -21,6 +54,12 @@ func Interpret(statements []Stmt) {
 
 func (e Expression) VisitStmt(env environment.Environment) error {
   e.Expression.VisitExpr(env)
+  return nil
+}
+
+func (e Function) VisitStmt(env environment.Environment) error {
+  function := LoxFunction{e}
+  environment.Define(&env, e.Name.Lexeme, function)
   return nil
 }
 
@@ -48,7 +87,12 @@ func (e While) VisitStmt(env environment.Environment) error {
   if err != nil {return err}
   for isTruthy(val) {
     err = execute(e.Body, env)
-    if err != nil {return err}
+    if err != nil {
+      if err.Error() == "break" {
+        break
+      }
+      return err
+    }
     
     val, err = evaluate(e.Condition, env)
     if err != nil {return err}
@@ -57,9 +101,12 @@ func (e While) VisitStmt(env environment.Environment) error {
   return nil
 }
 
+func (e Break) VisitStmt(env environment.Environment) error {
+  return errors.New("break")
+}
+
 func (e Block) VisitStmt(env environment.Environment) error {
-  executeBlock(e.Statements, environment.MakeEnvironment(&env, ""))
-  return nil
+  return executeBlock(e.Statements, environment.MakeEnvironment(&env, ""))
 }
 
 func (e If) VisitStmt(env environment.Environment) error {

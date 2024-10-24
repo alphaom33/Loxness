@@ -13,6 +13,10 @@ func (e Binary) AstPrint() string {
  return parenthesize(e.Operator.Lexeme, e.Left, e.Right) 
 }
 
+func (e Call) AstPrint() string {
+  return parenthesize(e.Paren.Lexeme, append([]Expr{e.Callee}, e.Arguments...)...)
+}
+
 func (e Logical) AstPrint() string {
   return parenthesize(e.Operator.Lexeme, e.Left, e.Right)
 }

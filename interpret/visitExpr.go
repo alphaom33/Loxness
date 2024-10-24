@@ -24,6 +24,27 @@ func (e Logical) VisitExpr(env environment.Environment) (any, error) {
   return evaluate(e.Right, env)
 }
 
+func (e Call) VisitExpr(env environment.Environment) (any, error) {
+  callee, err := evaluate(e.Callee, env)
+  if err != nil {return callee, err}
+
+  var arguments []any
+  for _, argument := range e.Arguments {
+    toAdd, err := evaluate(argument, env)
+    if err != nil {return toAdd, err}
+    arguments = append(arguments, toAdd)
+  }
+
+  function, ok := callee.(LoxCallable)
+  if !ok {
+    return nil, loxError.RuntimeError{e.Paren, "Can only call functions and classes."}
+  }
+  if len(arguments) != function.Arity() {
+    return nil, loxError.RuntimeError{e.Paren, fmt.Sprintf("Expected %d arguments but got %d", function.Arity(), len(arguments))}
+  }
+  return function.Call(env, arguments)
+}
+
 func (e Grouping) VisitExpr(env environment.Environment) (any, error) {
   return evaluate(e.Expression, env)
 }

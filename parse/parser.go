@@ -2,6 +2,7 @@ package parse
 
 import (
 	"errors"
+	"fmt"
 	. "lox/interpret"
 	"lox/loxError"
 	"lox/token"
@@ -26,7 +27,9 @@ func declaration() Stmt {
     var err error
     var out Stmt
 
-    if match(token.VAR) {
+    if match(token.FUN) {
+        out, err = function("function")
+    } else if match(token.VAR) {
         out, err = varDeclaration()
     } else {
         out, err = statement()
@@ -38,6 +41,33 @@ func declaration() Stmt {
     }
 
     return out
+}
+
+func function(kind string) (Function, error) {
+    name, err := consume(token.IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
+    if err != nil {return Function{}, err}
+
+    consume(token.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name", kind))
+    var parameters []token.Token
+    if !check(token.RIGHT_PAREN) {
+        for commad := true; commad; commad = match(token.COMMA) {
+            if len(parameters) >= 255 {
+                Error(peek(), "Can't have more than 255 parameters.")
+            }
+
+            toAdd, err := consume(token.IDENTIFIER, "Expect parameter name.")
+            if err != nil {return Function{}, err}
+            parameters = append(parameters, toAdd)
+        }
+    }
+    _, err = consume(token.RIGHT_PAREN, "Expect ')' after parameters.")
+    if err != nil {return Function{}, err}
+
+    _, err = consume(token.LEFT_BRACE, fmt.Sprintf("Expect '{' before %s body", kind))
+    if err != nil {return Function{}, err}
+
+    body := block()
+    return Function{name, parameters, body}, nil
 }
 
 func varDeclaration() (Stmt, error) {
@@ -59,12 +89,20 @@ func varDeclaration() (Stmt, error) {
 
 
 func statement() (Stmt, error) {
-    if (match(token.FOR)) {return forStatement()}
-    if (match(token.IF)) {return ifStatement()}
-    if (match(token.PRINT)) {return printStatement()}
-    if (match(token.WHILE)) {return whileStatement()}
-    if (match(token.LEFT_BRACE)) {return Block{block()}, nil}
+    if match(token.FOR) {return forStatement()}
+    if match(token.IF) {return ifStatement()}
+    if match(token.PRINT) {return printStatement()}
+    if match(token.WHILE) {return whileStatement()}
+    if match(token.LEFT_BRACE) {return Block{block()}, nil}
+    if match(token.BREAK) {return breakStatement()}
     return expressionStatement()
+}
+
+func breakStatement() (Stmt, error) {
+    _, err := consume(token.SEMICOLON, "Expect ';' after break statement.")
+    if err != nil {return nil, err}
+
+    return Break{}, nil
 }
 
 func forStatement() (Stmt, error) {
@@ -117,9 +155,9 @@ func whileStatement() (Stmt, error) {
     condition, err := expression()
     if err != nil {return nil, err}
     
-    consume(token.RIGHT_PAREN, "Expect '(' after 'while'.")
+    consume(token.RIGHT_PAREN, "Expect ')' after 'condition'.")
     body, err := statement()
-    if err != nil {return nil, err}
+    if err != nil {return body, err}
 
     return While{condition, body}, nil
 }
@@ -312,7 +350,42 @@ func unary() (Expr, error) {
         return nil, parseError(operator, "Binary operator without left-hand operarand")
     }
 
-    return primary()
+    return call()
+}
+
+func call() (Expr, error) {
+    expr, err := primary()
+    if err != nil {return expr, err}
+
+    for true {
+        if match(token.LEFT_PAREN) {
+            expr, err = finishCall(expr)
+            if err != nil {return expr, err}
+        } else {
+            break
+        }
+    }
+
+    return expr, nil
+}
+
+func finishCall(callee Expr) (Expr, error) {
+    var arguments []Expr
+    if !check(token.RIGHT_PAREN) {
+        for commad := true; commad; commad = match(token.COMMA) {
+            if (len(arguments) >= 255) {
+                Error(peek(), "Can't have more than 255 arguments.")
+            }
+            expr, err := expression()
+            if err != nil {return expr, err}
+            arguments = append(arguments, expr)
+        }
+    }
+
+    paren, err := consume(token.RIGHT_PAREN, "Expect ')' after arguments.")
+    if err != nil {return nil, err}
+
+    return Call{callee, paren, arguments}, nil
 }
 
 func primary() (Expr, error) {
