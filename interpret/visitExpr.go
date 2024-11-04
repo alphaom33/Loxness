@@ -65,6 +65,10 @@ func (e Unary) VisitExpr(env environment.Environment) (any, error) {
   return nil, nil
 }
 
+func (e LLambda) VisitExpr(env environment.Environment) (any, error) {
+  return LoxLambda{e, env}, nil
+}
+
 func (e Ternary) VisitExpr(_ environment.Environment) (any, error) {
   return nil, nil
 }
