@@ -92,6 +92,7 @@ func statement() (Stmt, error) {
     if match(token.FOR) {return forStatement()}
     if match(token.IF) {return ifStatement()}
     if match(token.PRINT) {return printStatement()}
+    if match(token.RETURN) {return returnStatement()}
     if match(token.WHILE) {return whileStatement()}
     if match(token.LEFT_BRACE) {return Block{block()}, nil}
     if match(token.BREAK) {return breakStatement()}
@@ -196,6 +197,19 @@ func printStatement() (Stmt, error) {
     _, err = consume(token.SEMICOLON, "Expect ';' after value.")
     if err != nil {return nil, err}
     return Print{value}, nil
+}
+
+func returnStatement() (Stmt, error) {
+    keyword := previous()
+    var value Expr = nil
+    if !check(token.SEMICOLON) {
+        var err error
+        value, err = expression()
+        if err != nil {return nil, err}
+    }
+
+    consume(token.SEMICOLON, "Expect ';' after return value.")
+    return Return{keyword, value}, nil
 }
 
 func expressionStatement() (Stmt, error) {

@@ -58,7 +58,7 @@ func (e Expression) VisitStmt(env environment.Environment) error {
 }
 
 func (e Function) VisitStmt(env environment.Environment) error {
-  function := LoxFunction{e}
+  function := LoxFunction{e, env}
   environment.Define(&env, e.Name.Lexeme, function)
   return nil
 }
@@ -69,6 +69,23 @@ func (e Print) VisitStmt(env environment.Environment) error {
   fmt.Println(Stringify(val))
 
   return nil
+}
+
+type ReturnError struct {
+  Value any
+}
+func (e ReturnError) Error() string {
+  return "Return statement can only be used inside a function"
+}
+func (e Return) VisitStmt(env environment.Environment) error {
+  var value any = nil
+  if e.Value != nil {
+    var err error
+    value, err = evaluate(e.Value, env)
+    if err != nil {return err}
+  }
+  
+  return ReturnError{value}
 }
 
 func (e Var) VisitStmt(env environment.Environment) error {

@@ -7,15 +7,20 @@ import (
 
 type LoxFunction struct {
   Declaration Function
+  Closure environment.Environment
 }
 
 func (e LoxFunction) Call(env environment.Environment, arguments []any) (any, error) {
-  envy := environment.MakeEnvironment(&env, "func")
+  envy := environment.MakeEnvironment(&e.Closure, "func")
   for i := 0; i < len(e.Declaration.Params); i++ {
     environment.Define(&envy, e.Declaration.Params[i].Lexeme, arguments[i])
   }
 
   err := executeBlock(e.Declaration.Body, envy)
+  rE, ok := err.(ReturnError)
+  if ok {
+    return rE.Value, nil
+  }
   return nil, err
 }
 

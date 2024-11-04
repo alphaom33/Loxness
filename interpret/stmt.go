@@ -33,6 +33,11 @@ type Print struct {
   Expression Expr
 }
 
+type Return struct {
+  Keyword token.Token
+  Value Expr
+}
+
 type Var struct {
   Name token.Token
   Initializer Expr
