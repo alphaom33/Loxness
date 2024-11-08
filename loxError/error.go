@@ -1,8 +1,9 @@
 package loxError
 
 import (
-	"os"
 	"fmt"
+	"lox/token"
+	"os"
 )
 
 var HadError = false
@@ -10,6 +11,14 @@ var HadRuntimeError = false
 
 func Error(line int, message string) {
 	Report(line, "", message)
+}
+
+func TokenError(tokeny token.Token, message string) {
+	if tokeny.TokenType == token.EOF {
+		Report(tokeny.Line, " at end", message)
+	} else {
+        Report(tokeny.Line, " at '" + tokeny.Lexeme + "'", message)
+    }
 }
 
 func Report(line int, where string, message string) {

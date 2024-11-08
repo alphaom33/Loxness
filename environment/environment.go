@@ -20,16 +20,27 @@ func MakeEnvironment(parent *Environment, n string) Environment {
 func Define(e *Environment, name string, value any) error {
   env := e
   for env != nil {
-    _, ok := env.values[name]
-    if ok {
-      return loxError.RuntimeError{token.Token{}, fmt.Sprintf("Variable '%s' is already defined in this scope", env.name)}
-    }
-    
     env = env.enclosing
   }
 
   e.values[name] = value 
   return nil
+}
+
+func GetAt(e *Environment, distance int, name string) any {
+  val, _ := ancestor(e, distance).values[name]
+  return val
+}
+
+func AssignAt(e *Environment, distance int, name token.Token, value any) {
+  ancestor(e, distance).values[name.Lexeme] = value
+}
+
+func ancestor(e *Environment, distance int) *Environment {
+  for i := 0; i < distance; i++ {
+    e = e.enclosing
+  }
+  return e
 }
 
 func Get(e *Environment, name token.Token) (any, error) {

@@ -9,10 +9,6 @@ func (e Ternary) AstPrint() string {
   return parenthesize("?", e.Condition, e.OnTrue, e.OnFalse)
 }
 
-func (e LLambda) AstPrint() string {
-  return "(lambda)"
-}
-
 func (e Binary) AstPrint() string {
  return parenthesize(e.Operator.Lexeme, e.Left, e.Right) 
 }

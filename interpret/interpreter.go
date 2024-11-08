@@ -8,7 +8,8 @@ import (
 	"time"
 )
 
-var globalEnv environment.Environment = environment.MakeEnvironment(nil, "asdf")
+var GlobalEnv environment.Environment = environment.MakeEnvironment(nil, "asdf")
+var locals map[Expr]int = make(map[Expr]int)
 
 type ProtoLoxCallable struct {
   callMethod func(env environment.Environment, arguments []any) (any, error)
@@ -29,7 +30,7 @@ func (p ProtoLoxCallable) String() string {
 }
 
 func Interpret(statements []Stmt) {
-  environment.Define(&globalEnv, "clock", ProtoLoxCallable{
+  environment.Define(&GlobalEnv, "clock", ProtoLoxCallable{
     arityMethod: func() int {
       return 0
     },
@@ -43,7 +44,7 @@ func Interpret(statements []Stmt) {
   })
   
   for _, statement := range statements {
-    err := execute(statement, globalEnv)
+    err := execute(statement, GlobalEnv)
     if err != nil {
       rE, _ := err.(loxError.RuntimeError)
       loxError.ThrowRuntimeError(rE)
@@ -59,8 +60,7 @@ func (e Expression) VisitStmt(env environment.Environment) error {
 
 func (e Function) VisitStmt(env environment.Environment) error {
   function := LoxFunction{e, env}
-  environment.Define(&env, e.Name.Lexeme, function)
-  return nil
+  return environment.Define(&env, e.Name.Lexeme, function)
 }
 
 func (e Print) VisitStmt(env environment.Environment) error {
@@ -89,7 +89,7 @@ func (e Return) VisitStmt(env environment.Environment) error {
 }
 
 func (e Var) VisitStmt(env environment.Environment) error {
-  var value any = Undefined{}
+  var value any
   if e.Initializer != nil {
     var err error
     value, err = e.Initializer.VisitExpr(env)
@@ -164,4 +164,8 @@ func Stringify(object any) string {
   }
 
   return fmt.Sprintf("%+v", object)
+}
+
+func InterpretResolve(expr Expr, depth int) {
+  locals[expr] = depth
 }

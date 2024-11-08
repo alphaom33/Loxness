@@ -43,7 +43,7 @@ func declaration() Stmt {
     return out
 }
 
-func function(kind string) (Stmt, error) {
+func function(kind string) (Function, error) {
     name, err := consume(token.IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
     if err != nil {return Function{}, err}
 
@@ -52,7 +52,7 @@ func function(kind string) (Stmt, error) {
     if !check(token.RIGHT_PAREN) {
         for commad := true; commad; commad = match(token.COMMA) {
             if len(parameters) >= 255 {
-                Error(peek(), "Can't have more than 255 parameters.")
+                loxError.TokenError(peek(), "Can't have more than 255 parameters.")
             }
 
             toAdd, err := consume(token.IDENTIFIER, "Expect parameter name.")
@@ -388,7 +388,7 @@ func finishCall(callee Expr) (Expr, error) {
     if !check(token.RIGHT_PAREN) {
         for commad := true; commad; commad = match(token.COMMA) {
             if (len(arguments) >= 255) {
-                Error(peek(), "Can't have more than 255 arguments.")
+                loxError.TokenError(peek(), "Can't have more than 255 arguments.")
             }
             expr, err := expression()
             if err != nil {return expr, err}
@@ -422,40 +422,8 @@ func primary() (Expr, error) {
         return Grouping{expression}, nil
     }
 
-    if match(token.FUN) {
-        return lamda()
-    }
-
     return Grouping{}, parseError(peek(), "Expect expression.")
 }
-
-func lamda() (Expr, error) {
-    _, err := consume(token.LEFT_PAREN, "Expect '(' after function keyword.")
-    if err != nil {return nil, err}
-
-    var parameters []token.Token
-    if !check(token.RIGHT_PAREN) {
-        for commad := true; commad; commad = match(token.COMMA) {
-            if len(parameters) >= 255 {
-                Error(peek(), "Can't have more than 255 parameters.")
-            }
-
-            toAdd, err := consume(token.IDENTIFIER, "Expect parameter name.")
-            if err != nil {return LLambda{}, err}
-            parameters = append(parameters, toAdd)
-        }
-    }
-
-    _, err = consume(token.RIGHT_PAREN, "Expect ')' after parameters.")
-    if err != nil {return nil, err}
-
-    _, err = consume(token.LEFT_BRACE, "Expect '{' before lambda body")
-    if err != nil {return LLambda{}, err}
-
-    body := block()
-    return LLambda{parameters, body}, nil
-}
-
 
 func match(types... token.TokenType) bool {
     for _, t := range types {
@@ -498,16 +466,8 @@ func previous() token.Token {
 }
 
 func parseError(token token.Token, message string) error {
-    Error(token, message)
+    loxError.TokenError(token, message)
     return ParseError{}
-}
-
-func Error(tokeny token.Token, message string) {
-	if tokeny.TokenType == token.EOF {
-		loxError.Report(tokeny.Line, " at end", message)
-	} else {
-        loxError.Report(tokeny.Line, " at '" + tokeny.Lexeme + "'", message)
-    }
 }
 
 func synchronize() {

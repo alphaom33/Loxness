@@ -47,11 +47,6 @@ type Unary struct {
   Right Expr
 }
 
-type LLambda struct {
-  Params []token.Token
-  Body []Stmt
-}
-
 type Variable struct {
   Name token.Token
 }
@@ -59,8 +54,4 @@ type Variable struct {
 type Assign struct {
   Name token.Token
   Value Expr
-}
-
-type Undefined struct {
-  
 }

@@ -65,10 +65,6 @@ func (e Unary) VisitExpr(env environment.Environment) (any, error) {
   return nil, nil
 }
 
-func (e LLambda) VisitExpr(env environment.Environment) (any, error) {
-  return LoxLambda{e, env}, nil
-}
-
 func (e Ternary) VisitExpr(_ environment.Environment) (any, error) {
   return nil, nil
 }
@@ -141,27 +137,30 @@ func (e Binary) VisitExpr(env environment.Environment) (any, error) {
 }
 
 func (e Variable) VisitExpr(env environment.Environment) (any, error) {
-  val, err := environment.Get(&env, e.Name)
-  if err != nil {
-    return nil, err}
+  return lookUpVariable(env, e.Name, e)
+}
 
-  _, ok := val.(Undefined)
+func lookUpVariable(env environment.Environment, name token.Token, expr Expr) (any, error) {
+  distance, ok := locals[expr]
   if ok {
-    return nil, loxError.RuntimeError{e.Name, "Variable " + e.Name.Lexeme + " is not defined."}
+    return environment.GetAt(&env, distance, name.Lexeme), nil
+  } else {
+    return environment.Get(&GlobalEnv, name)
   }
-
-  return val, nil
 }
 
 func (e Assign) VisitExpr(env environment.Environment) (any, error) {
   value, err := evaluate(e.Value, env)
   if err != nil {return nil, err}
-  environment.Assign(&env, e.Name, value)
-  return value, nil
-}
 
-func (e Undefined) VisitExpr(_ environment.Environment) (any, error) {
-  return nil, nil
+  distance, ok := locals[e]
+  if ok {
+    environment.AssignAt(&env, distance, e.Name, value)
+  } else {
+    environment.Assign(&GlobalEnv, e.Name, value)
+  }
+
+  return value, nil
 }
 
 func evaluate(expression Expr, env environment.Environment) (any, error) {
