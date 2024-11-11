@@ -24,6 +24,27 @@ func (e Logical) VisitExpr(env environment.Environment) (any, error) {
   return evaluate(e.Right, env)
 }
 
+func (e Set) VisitExpr(env environment.Environment) (any, error) {
+  object, err := evaluate(e.Object, env)
+  if err != nil {return object, err}
+
+  inst, ok := object.(LoxInstance)
+  if !ok {
+    return nil, loxError.RuntimeError{e.Name, "Only instances have fields."}
+  }
+
+  value, err := evaluate(e.Value, env)
+  if err != nil {return value, err}
+
+  inst.Set(e.Name, value)
+  return value, nil
+}
+
+func (e This) VisitExpr(env environment.Environment) (any, error) {
+  tmp, err := lookUpVariable(env, e.Keyword, e)
+  return tmp, err
+}
+
 func (e Call) VisitExpr(env environment.Environment) (any, error) {
   callee, err := evaluate(e.Callee, env)
   if err != nil {return callee, err}
@@ -43,6 +64,18 @@ func (e Call) VisitExpr(env environment.Environment) (any, error) {
     return nil, loxError.RuntimeError{e.Paren, fmt.Sprintf("Expected %d arguments but got %d", function.Arity(), len(arguments))}
   }
   return function.Call(env, arguments)
+}
+
+func (e Get) VisitExpr(env environment.Environment) (any, error) {
+  object, err := evaluate(e.Object, env)
+  if err != nil {return object, err}
+
+  inst, ok := object.(LoxInstance)
+  if ok {
+    return inst.Get(e.Name)
+  }
+
+  return nil, loxError.RuntimeError{e.Name, "Only instances have properties."}
 }
 
 func (e Grouping) VisitExpr(env environment.Environment) (any, error) {

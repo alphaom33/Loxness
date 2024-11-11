@@ -28,6 +28,11 @@ type Call struct {
   Arguments []Expr
 }
 
+type Get struct {
+  Object Expr
+  Name token.Token
+}
+
 type Grouping struct {
   Expression Expr
 }
@@ -40,6 +45,16 @@ type Logical struct {
   Left Expr
   Operator token.Token
   Right Expr
+}
+
+type Set struct {
+  Object Expr
+  Name token.Token
+  Value Expr
+}
+
+type This struct {
+  Keyword token.Token
 }
 
 type Unary struct {

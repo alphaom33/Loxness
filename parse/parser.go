@@ -27,7 +27,9 @@ func declaration() Stmt {
     var err error
     var out Stmt
 
-    if match(token.FUN) {
+    if match(token.CLASS) {
+        out, err = classDeclaration()
+    } else if match(token.FUN) {
         out, err = function("function")
     } else if match(token.VAR) {
         out, err = varDeclaration()
@@ -41,6 +43,26 @@ func declaration() Stmt {
     }
 
     return out
+}
+
+func classDeclaration() (Stmt, error) {
+    name, err := consume(token.IDENTIFIER, "Expect class name.")
+    if err != nil {return nil, err}
+    
+    _, err = consume(token.LEFT_BRACE, "Expect '{' before class body.")
+    if err != nil {return nil, err}
+
+    var methods []Function
+    for !check(token.RIGHT_BRACE) && !isAtEnd() {
+        fun, err := function("method")
+        if err != nil {return fun, err}
+        methods = append(methods, fun)
+    }
+
+    _, err = consume(token.RIGHT_BRACE, "Expect '}' after class body.")
+    if err != nil {return nil, err}
+
+    return Class{name, methods}, nil
 }
 
 func function(kind string) (Function, error) {
@@ -231,10 +253,13 @@ func assignment() (Expr, error) {
         value, err := assignment()
         if err != nil {return value, err}
 
-        v, ok := expr.(Variable)
-        if ok {
+        v, okv := expr.(Variable)
+        i, oki := expr.(Get)
+        if okv {
             name := v.Name
             return Assign{name, value}, nil
+        } else if oki {
+            return Set{i.Object, i.Name, value}, nil
         }
 
         parseError(equals, "Invalid assignment target.")
@@ -375,6 +400,10 @@ func call() (Expr, error) {
         if match(token.LEFT_PAREN) {
             expr, err = finishCall(expr)
             if err != nil {return expr, err}
+        } else if match(token.DOT) {
+            name, err := consume(token.IDENTIFIER, "Expect property name after '.'.")
+            if err != nil {return nil, err}
+            expr = Get{expr, name}
         } else {
             break
         }
@@ -409,6 +438,10 @@ func primary() (Expr, error) {
 
     if match(token.NUMBER, token.STRING) {
         return Literal{previous().Literal}, nil
+    }
+
+    if match(token.THIS) {
+        return This{previous()}, nil
     }
 
     if match(token.IDENTIFIER) {

@@ -17,8 +17,20 @@ func (e Call) AstPrint() string {
   return parenthesize(e.Paren.Lexeme, append([]Expr{e.Callee}, e.Arguments...)...)
 }
 
+func (e Get) AstPrint() string {
+  return parenthesize(e.Name.Lexeme, e.Object)
+}
+
 func (e Logical) AstPrint() string {
   return parenthesize(e.Operator.Lexeme, e.Left, e.Right)
+}
+
+func (e Set) AstPrint() string {
+  return parenthesize(e.Name.Lexeme, e.Object, e.Value)
+}
+
+func (e This) AstPrint() string {
+  return parenthesize(e.Keyword.Lexeme)
 }
 
 func (e Grouping) AstPrint() string {

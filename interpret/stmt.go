@@ -13,6 +13,11 @@ type Block struct {
   Statements []Stmt
 }
 
+type Class struct {
+  Name token.Token
+  Methods []Function
+}
+
 type Expression struct {
   Expression Expr
 }

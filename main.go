@@ -58,7 +58,7 @@ func run(source string) {
 	statements := parse.Parse(tokens)
 	if loxError.HadError {return}
 
-	interpret.Resolve(interpret.GlobalEnv, statements)
+	interpret.InitialResolve(interpret.GlobalEnv, statements)
 	if loxError.HadError {return}
 
 	interpret.Interpret(statements)

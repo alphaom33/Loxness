@@ -1,6 +1,8 @@
 package interpret
 
 import (
+	"fmt"
+	classtype "lox/classType"
 	"lox/environment"
 	"lox/functionType"
 	"lox/loxError"
@@ -10,6 +12,7 @@ import (
 
 type stack []map[string]varusage.VarUsage
 var currentFunction functiontype.FunctionType
+var currentClass classtype.ClassType = classtype.NONE
 
 func (s stack) Ack(name string, value varusage.VarUsage) {
   s[len(s)-1][name] = value
@@ -40,6 +43,33 @@ func (e Block) VisitScope(env environment.Environment) {
   endScope()
 }
 
+func (e Class) VisitScope(env environment.Environment) {
+  enclosingClass := currentClass
+  currentClass = classtype.CLASS
+  
+  declare(e.Name)
+  define(e.Name)
+
+  beginScope()
+  scopes.Ack("this", varusage.INITIALIZED)
+
+  for _, method := range e.Methods {
+    var declaration functiontype.FunctionType
+    
+    if method.Name.Lexeme == "init" {
+      declaration = functiontype.INITIALIZER
+    } else {
+      declaration = functiontype.METHOD
+    }
+    
+    resolveFunction(env, method, declaration)  
+  }
+
+  endScope()
+
+  currentClass = enclosingClass
+}
+
 func (e Var) VisitScope(env environment.Environment) {
   declare(e.Name)
   if e.Initializer != nil {
@@ -49,11 +79,11 @@ func (e Var) VisitScope(env environment.Environment) {
 }
 
 func (e Variable) VisitScope(env environment.Environment) {
-  if len(scopes) != 0 && scopes.Peek()[e.Name.Lexeme] == varusage.DECLARED {
+  val, ok := scopes.Peek()[e.Name.Lexeme]
+  if len(scopes) != 0 && ok && val == varusage.DECLARED {
     loxError.ThrowRuntimeError(loxError.RuntimeError{e.Name, "Can't read local variable in its own initializer."})
   }
 
-  scopes.Ack(e.Name.Lexeme, varusage.USED)
   resolveLocal(e, e.Name)
 }
 
@@ -89,6 +119,9 @@ func (e Return) VisitScope(env environment.Environment) {
   }
   
   if e.Value != nil {
+    if currentFunction == functiontype.INITIALIZER {
+      loxError.TokenError(e.Keyword, "Can't return from an initializer.")
+    }
     resolveExpr(env, e.Value)
   }
 }
@@ -111,6 +144,10 @@ func (e Call) VisitScope(env environment.Environment) {
   }
 }
 
+func (e Get) VisitScope(env environment.Environment) {
+  resolveExpr(env, e.Object)
+}
+
 func (e Grouping) VisitScope(env environment.Environment) {
 }
 
@@ -121,16 +158,33 @@ func (e Logical) VisitScope(env environment.Environment) {
   resolveExpr(env, e.Right)
 }
 
+func (e Set) VisitScope(env environment.Environment) {
+  resolveExpr(env, e.Value)
+  resolveExpr(env, e.Object)
+}
+
+func (e This) VisitScope(env environment.Environment) {
+  if currentClass == classtype.NONE {
+    loxError.TokenError(e.Keyword, "Can't use 'this' outside of a class")
+  }
+  
+  resolveLocal(e, e.Keyword)
+}
+
 func (e Unary) VisitScope(env environment.Environment) {
   resolveExpr(env, e.Right)
 }
 
-func Resolve(env environment.Environment, statements []Stmt) {
+func InitialResolve(env environment.Environment, statements []Stmt) {
   beginScope()
+  Resolve(env, statements)
+  endScope()
+}
+
+func Resolve(env environment.Environment, statements []Stmt) {
   for _, statement := range statements {
     resolveStmt(env, statement)
   }
-  endScope()
 }
 
 func resolveStmt(env environment.Environment, statement Stmt) {
@@ -169,8 +223,8 @@ func endScope() {
   scopes, scope = scopes.Pop()
 
   for k, v := range scope {
-    if v != varusage.USED {
-      loxError.Error(0, k + " is never used")
+    if v != varusage.USED && k != "this" {
+      fmt.Println("Warning: " + k + " is never used")
     }
   }
 }
@@ -193,6 +247,7 @@ func resolveLocal(expr Expr, name token.Token) {
   for i := len(scopes) - 1; i >= 0; i-- {
     _, ok := scopes[i][name.Lexeme]
     if ok {
+      scopes[i][name.Lexeme] = varusage.USED
       InterpretResolve(expr, len(scopes) - 1 - i)
       return
     }

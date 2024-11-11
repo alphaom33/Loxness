@@ -46,6 +46,7 @@ func ancestor(e *Environment, distance int) *Environment {
 func Get(e *Environment, name token.Token) (any, error) {
  val, ok := e.values[name.Lexeme] 
   if ok {
+    fmt.Println(val)
     return val, nil
   }
   

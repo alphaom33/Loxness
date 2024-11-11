@@ -59,7 +59,7 @@ func (e Expression) VisitStmt(env environment.Environment) error {
 }
 
 func (e Function) VisitStmt(env environment.Environment) error {
-  function := LoxFunction{e, env}
+  function := LoxFunction{e, env, false}
   return environment.Define(&env, e.Name.Lexeme, function)
 }
 
@@ -124,6 +124,20 @@ func (e Break) VisitStmt(env environment.Environment) error {
 
 func (e Block) VisitStmt(env environment.Environment) error {
   return executeBlock(e.Statements, environment.MakeEnvironment(&env, ""))
+}
+
+func (e Class) VisitStmt(env environment.Environment) error {
+  environment.Define(&env, e.Name.Lexeme, nil)
+
+  methods := make(map[string]LoxFunction)
+  for _, method := range e.Methods {
+    function := LoxFunction{method, env, method.Name.Lexeme == "init"}
+    methods[method.Name.Lexeme] = function
+  }
+  
+  class := LoxClass{e.Name, methods}
+  environment.Assign(&env, e.Name, class)
+  return nil
 }
 
 func (e If) VisitStmt(env environment.Environment) error {
