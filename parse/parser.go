@@ -53,37 +53,56 @@ func classDeclaration() (Stmt, error) {
     if err != nil {return nil, err}
 
     var methods []Function
+    var staticMethods []Function
+    var getters []Function
     for !check(token.RIGHT_BRACE) && !isAtEnd() {
-        fun, err := function("method")
+        var class = check(token.CLASS)
+        if class {consume(token.CLASS, "")}
+
+        funcType := "method"
+        var getter = doublePeek().TokenType != token.LEFT_PAREN
+        if getter {
+            funcType = "getter"
+        }
+        fun, err := function(funcType)
         if err != nil {return fun, err}
-        methods = append(methods, fun)
+        
+        if class {
+            staticMethods = append(staticMethods, fun)
+        } else if getter  {
+            getters = append(getters, fun)
+        } else {
+            methods = append(methods, fun)
+        }
     }
 
     _, err = consume(token.RIGHT_BRACE, "Expect '}' after class body.")
     if err != nil {return nil, err}
 
-    return Class{name, methods}, nil
+    return Class{name, methods, staticMethods, getters}, nil
 }
 
 func function(kind string) (Function, error) {
     name, err := consume(token.IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
     if err != nil {return Function{}, err}
 
-    consume(token.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name", kind))
     var parameters []token.Token
-    if !check(token.RIGHT_PAREN) {
-        for commad := true; commad; commad = match(token.COMMA) {
-            if len(parameters) >= 255 {
-                loxError.TokenError(peek(), "Can't have more than 255 parameters.")
-            }
+    if kind != "getter" {
+        consume(token.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name", kind))
+        if !check(token.RIGHT_PAREN) {
+            for commad := true; commad; commad = match(token.COMMA) {
+                if len(parameters) >= 255 {
+                    loxError.TokenError(peek(), "Can't have more than 255 parameters.")
+                }
 
-            toAdd, err := consume(token.IDENTIFIER, "Expect parameter name.")
-            if err != nil {return Function{}, err}
-            parameters = append(parameters, toAdd)
+                toAdd, err := consume(token.IDENTIFIER, "Expect parameter name.")
+                if err != nil {return Function{}, err}
+                parameters = append(parameters, toAdd)
+            }
         }
+        _, err = consume(token.RIGHT_PAREN, "Expect ')' after parameters.")
+        if err != nil {return Function{}, err}
     }
-    _, err = consume(token.RIGHT_PAREN, "Expect ')' after parameters.")
-    if err != nil {return Function{}, err}
 
     _, err = consume(token.LEFT_BRACE, fmt.Sprintf("Expect '{' before %s body", kind))
     if err != nil {return Function{}, err}
@@ -492,6 +511,10 @@ func isAtEnd() bool {
 
 func peek() token.Token {
     return tokens[current]
+}
+
+func doublePeek() token.Token {
+    return tokens[current + 1]
 }
 
 func previous() token.Token {

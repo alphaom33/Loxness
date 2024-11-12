@@ -29,14 +29,19 @@ func (e Set) VisitExpr(env environment.Environment) (any, error) {
   if err != nil {return object, err}
 
   inst, ok := object.(LoxInstance)
-  if !ok {
+  class, cok := object.(LoxClass)
+  if !ok && !cok {
     return nil, loxError.RuntimeError{e.Name, "Only instances have fields."}
   }
 
   value, err := evaluate(e.Value, env)
   if err != nil {return value, err}
 
-  inst.Set(e.Name, value)
+  if ok {
+    inst.Set(e.Name, value)
+  } else {
+    class.Set(e.Name, value)
+  }
   return value, nil
 }
 
@@ -71,8 +76,11 @@ func (e Get) VisitExpr(env environment.Environment) (any, error) {
   if err != nil {return object, err}
 
   inst, ok := object.(LoxInstance)
+  class, cok := object.(LoxClass)
   if ok {
     return inst.Get(e.Name)
+  } else if cok {
+    return class.Get(e.Name)
   }
 
   return nil, loxError.RuntimeError{e.Name, "Only instances have properties."}

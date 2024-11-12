@@ -65,6 +65,10 @@ func (e Class) VisitScope(env environment.Environment) {
     resolveFunction(env, method, declaration)  
   }
 
+  for _, getter := range e.Getters {
+    resolveFunction(env, getter, functiontype.METHOD)
+  }
+
   endScope()
 
   currentClass = enclosingClass

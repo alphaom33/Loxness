@@ -7,7 +7,7 @@ import (
 )
 
 type LoxInstance struct {
-  Class LoxClass
+  Class *LoxClass
   Fields map[string]any
 }
 
@@ -16,14 +16,23 @@ func (e LoxInstance) String() string {
 }
 
 func (e LoxInstance) Get(name token.Token) (any, error) {
+  if e.Class != nil {
+    val, ok := e.Class.Getters[name.Lexeme]
+    if ok {
+      return val.Bind(e).Call(GlobalEnv, nil)
+    }
+  }
+  
   val, ok := e.Fields[name.Lexeme]
   if ok {
     return val, nil
   }
 
-  method, _ := e.Class.FindMethod(name.Lexeme)
-  if !reflect.DeepEqual(method, LoxFunction{}) {
-    return method.Bind(e), nil
+  if e.Class != nil {
+    method, _ := e.Class.FindMethod(name.Lexeme)
+    if !reflect.DeepEqual(method, LoxFunction{}) {
+      return method.Bind(e), nil
+    }
   }
 
   return nil, loxError.RuntimeError{name, "Undefined Property '" + name.Lexeme + "'."}

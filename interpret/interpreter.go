@@ -131,11 +131,20 @@ func (e Class) VisitStmt(env environment.Environment) error {
 
   methods := make(map[string]LoxFunction)
   for _, method := range e.Methods {
-    function := LoxFunction{method, env, method.Name.Lexeme == "init"}
-    methods[method.Name.Lexeme] = function
+    methods[method.Name.Lexeme] = LoxFunction{method, env, method.Name.Lexeme == "init"}
+  }
+
+  staticMethods := make(map[string]any)
+  for _, method := range e.StaticMethods {
+    staticMethods[method.Name.Lexeme] = LoxFunction{method, env, false}
+  }
+
+  getters := make(map[string]LoxFunction)
+  for _, getter := range e.Getters {
+    getters[getter.Name.Lexeme] = LoxFunction{getter, env, false}
   }
   
-  class := LoxClass{e.Name, methods}
+  class := LoxClass{LoxInstance{nil, staticMethods}, e.Name, methods, getters}
   environment.Assign(&env, e.Name, class)
   return nil
 }

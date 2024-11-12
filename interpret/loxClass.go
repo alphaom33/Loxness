@@ -6,12 +6,14 @@ import (
 )
 
 type LoxClass struct {
+  LoxInstance
   Name token.Token
-  methods map[string]LoxFunction
+  Methods map[string]LoxFunction
+  Getters map[string] LoxFunction
 }
 
 func (e LoxClass) Call(env environment.Environment, arguments []any) (any, error) {
-  instance := LoxInstance{e, make(map[string]any)}
+  instance := LoxInstance{&e, make(map[string]any)}
   initializer, err := e.FindMethod("init")
   if err == nil {
     initializer.Bind(instance).Call(env, arguments)
@@ -33,7 +35,7 @@ func (e MethodNotFoundError) Error() string {
 }
 
 func (e LoxClass) FindMethod(name string) (LoxFunction, error) {
-  val, ok := e.methods[name]
+  val, ok := e.Methods[name]
   if ok {
     return val, nil
   }

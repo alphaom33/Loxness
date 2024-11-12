@@ -15,7 +15,10 @@ type Block struct {
 
 type Class struct {
   Name token.Token
+  superclass Variable
   Methods []Function
+  StaticMethods []Function
+  Getters []Function
 }
 
 type Expression struct {
