@@ -15,7 +15,7 @@ type Block struct {
 
 type Class struct {
   Name token.Token
-  superclass Variable
+  Superclass *Variable
   Methods []Function
   StaticMethods []Function
   Getters []Function

@@ -29,6 +29,10 @@ func (e Set) AstPrint() string {
   return parenthesize(e.Name.Lexeme, e.Object, e.Value)
 }
 
+func (e Super) AstPrint() string {
+  return parenthesize(e.Keyword.Lexeme)
+}
+
 func (e This) AstPrint() string {
   return parenthesize(e.Keyword.Lexeme)
 }

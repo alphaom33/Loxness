@@ -53,6 +53,11 @@ type Set struct {
   Value Expr
 }
 
+type Super struct {
+  Keyword token.Token
+  Method token.Token
+}
+
 type This struct {
   Keyword token.Token
 }

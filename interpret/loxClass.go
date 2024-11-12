@@ -8,6 +8,7 @@ import (
 type LoxClass struct {
   LoxInstance
   Name token.Token
+  Superclass *LoxClass
   Methods map[string]LoxFunction
   Getters map[string] LoxFunction
 }
@@ -38,6 +39,10 @@ func (e LoxClass) FindMethod(name string) (LoxFunction, error) {
   val, ok := e.Methods[name]
   if ok {
     return val, nil
+  }
+
+  if e.Superclass != nil {
+    return e.Superclass.FindMethod(name)
   }
 
   return LoxFunction{}, MethodNotFoundError{name}

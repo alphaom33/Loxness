@@ -7,7 +7,7 @@ import (
 )
 
 type Environment struct {
-  enclosing *Environment
+  Enclosing *Environment
   values map[string]any
   name string
 }
@@ -18,12 +18,7 @@ func MakeEnvironment(parent *Environment, n string) Environment {
 }
 
 func Define(e *Environment, name string, value any) error {
-  env := e
-  for env != nil {
-    env = env.enclosing
-  }
-
-  e.values[name] = value 
+  e.values[name] = value
   return nil
 }
 
@@ -38,7 +33,7 @@ func AssignAt(e *Environment, distance int, name token.Token, value any) {
 
 func ancestor(e *Environment, distance int) *Environment {
   for i := 0; i < distance; i++ {
-    e = e.enclosing
+    e = e.Enclosing
   }
   return e
 }
@@ -49,8 +44,8 @@ func Get(e *Environment, name token.Token) (any, error) {
     return val, nil
   }
   
-  if e.enclosing != nil {
-    return Get(e.enclosing, name)
+  if e.Enclosing != nil {
+    return Get(e.Enclosing, name)
   }
 
   return nil, loxError.RuntimeError{name, "Undefined variable '" + name.Lexeme + "'."}
@@ -63,9 +58,13 @@ func Assign(e *Environment, name token.Token, value any) error {
     return nil
   }
 
-  if e.enclosing != nil {
-    return Assign(e.enclosing, name, value)
+  if e.Enclosing != nil {
+    return Assign(e.Enclosing, name, value)
   }
 
    return loxError.RuntimeError{name, fmt.Sprintf("Undefined variable '%s'.", name.Lexeme)} 
+}
+
+func (e Environment) GetName() string {
+  return e.name
 }

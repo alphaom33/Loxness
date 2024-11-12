@@ -45,6 +45,20 @@ func (e Set) VisitExpr(env environment.Environment) (any, error) {
   return value, nil
 }
 
+func (e Super) VisitExpr(env environment.Environment) (any, error) {
+  distance := locals[e]
+  superclass, _ := environment.GetAt(&env, distance, "super").(LoxClass)
+
+  object, _ := environment.GetAt(&env, distance - 1, "this.").(LoxInstance)
+
+  method, err := superclass.FindMethod(e.Method.Lexeme)
+  if err != nil {
+    return method, loxError.RuntimeError{e.Method, "Undefined property '" + e.Method.Lexeme + "'."}
+  }
+  
+  return method.Bind(object), nil
+}
+
 func (e This) VisitExpr(env environment.Environment) (any, error) {
   tmp, err := lookUpVariable(env, e.Keyword, e)
   return tmp, err

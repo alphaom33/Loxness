@@ -50,6 +50,19 @@ func (e Class) VisitScope(env environment.Environment) {
   declare(e.Name)
   define(e.Name)
 
+  if e.Superclass != nil && e.Name.Lexeme == e.Superclass.Name.Lexeme {
+    loxError.TokenError(e.Superclass.Name, "A class can't inherit from itself")
+  }
+
+  if e.Superclass != nil {
+    resolveExpr(env, *e.Superclass)
+  }
+
+  if e.Superclass != nil {
+    beginScope()
+    scopes.Ack("super", varusage.INITIALIZED)
+  }
+
   beginScope()
   scopes.Ack("this", varusage.INITIALIZED)
 
@@ -71,6 +84,8 @@ func (e Class) VisitScope(env environment.Environment) {
 
   endScope()
 
+  if e.Superclass != nil {endScope()}
+  
   currentClass = enclosingClass
 }
 
@@ -165,6 +180,10 @@ func (e Logical) VisitScope(env environment.Environment) {
 func (e Set) VisitScope(env environment.Environment) {
   resolveExpr(env, e.Value)
   resolveExpr(env, e.Object)
+}
+
+func (e Super) VisitScope(env environment.Environment) {
+  resolveLocal(e, e.Keyword)
 }
 
 func (e This) VisitScope(env environment.Environment) {

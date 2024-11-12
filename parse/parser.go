@@ -3,6 +3,7 @@ package parse
 import (
 	"errors"
 	"fmt"
+	"lox/interpret"
 	. "lox/interpret"
 	"lox/loxError"
 	"lox/token"
@@ -48,6 +49,12 @@ func declaration() Stmt {
 func classDeclaration() (Stmt, error) {
     name, err := consume(token.IDENTIFIER, "Expect class name.")
     if err != nil {return nil, err}
+
+    var superclass *interpret.Variable
+    if match(token.LESS) {
+        consume(token.IDENTIFIER, "Expect superclass name.")
+        superclass = &interpret.Variable{previous()}
+    }
     
     _, err = consume(token.LEFT_BRACE, "Expect '{' before class body.")
     if err != nil {return nil, err}
@@ -79,7 +86,7 @@ func classDeclaration() (Stmt, error) {
     _, err = consume(token.RIGHT_BRACE, "Expect '}' after class body.")
     if err != nil {return nil, err}
 
-    return Class{name, methods, staticMethods, getters}, nil
+    return Class{name, superclass, methods, staticMethods, getters}, nil
 }
 
 func function(kind string) (Function, error) {
@@ -457,6 +464,18 @@ func primary() (Expr, error) {
 
     if match(token.NUMBER, token.STRING) {
         return Literal{previous().Literal}, nil
+    }
+
+    if match(token.SUPER) {
+        keyword := previous()
+        
+        _, err := consume(token.DOT, "Expect '.' after 'super'.")
+        if err != nil {return nil, err}
+        
+        method, err := consume(token.IDENTIFIER, "Expect superclass method name.")
+        if err != nil {return nil, err}
+
+        return Super{keyword, method}, nil
     }
 
     if match(token.THIS) {

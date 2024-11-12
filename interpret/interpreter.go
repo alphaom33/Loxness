@@ -127,7 +127,26 @@ func (e Block) VisitStmt(env environment.Environment) error {
 }
 
 func (e Class) VisitStmt(env environment.Environment) error {
+  var superclass any
+  if e.Superclass != nil {
+    var err error
+    superclass, err = e.Superclass.VisitExpr(env)
+    if err != nil {return err}
+
+    var ok bool
+    superclass, ok = superclass.(LoxClass)
+    if !ok {
+      loxError.TokenError(e.Superclass.Name, "Superclass must be a class.")
+    }
+  }
+  
   environment.Define(&env, e.Name.Lexeme, nil)
+
+  envy := env
+  if e.Superclass != nil {
+    env = environment.MakeEnvironment(&env, "a")
+    environment.Define(&env, "super", superclass)
+  }
 
   methods := make(map[string]LoxFunction)
   for _, method := range e.Methods {
@@ -143,8 +162,13 @@ func (e Class) VisitStmt(env environment.Environment) error {
   for _, getter := range e.Getters {
     getters[getter.Name.Lexeme] = LoxFunction{getter, env, false}
   }
-  
-  class := LoxClass{LoxInstance{nil, staticMethods}, e.Name, methods, getters}
+
+  super, _ := superclass.(LoxClass)
+  class := LoxClass{LoxInstance{nil, staticMethods}, e.Name, &super, methods, getters}
+
+  if superclass != nil {
+    env = envy
+  }
   environment.Assign(&env, e.Name, class)
   return nil
 }
