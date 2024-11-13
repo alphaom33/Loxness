@@ -1,14 +1,28 @@
-class Doughnut {
+class Desert {
+  taste() {
+    print "sweet yay";
+  }
+}
+
+class Frosted {
+  form() {
+    print "add frosting.";
+  }
+}
+
+class Doughnut < Desert {
   cook() {
     print "Fry until golden brown.";
   }
 }
 
-class BostonCream < Doughnut {
+class BostonCream < Doughnut, Frosted {
   cook() {
     super.cook();
     print "Pipe full of custard and coat with chocolate.";
   }
 }
 
+BostonCream().taste();
+BostonCream().form();
 BostonCream().cook();

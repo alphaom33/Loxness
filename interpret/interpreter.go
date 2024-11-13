@@ -127,26 +127,27 @@ func (e Block) VisitStmt(env environment.Environment) error {
 }
 
 func (e Class) VisitStmt(env environment.Environment) error {
-  var superclass any
-  if e.Superclass != nil {
-    var err error
-    superclass, err = e.Superclass.VisitExpr(env)
+  var superclasses []LoxClass
+  for _, superclass := range e.Superclasses {
+    interpretedSuper, err := superclass.VisitExpr(env)
     if err != nil {return err}
 
     var ok bool
-    superclass, ok = superclass.(LoxClass)
+    classed, ok := interpretedSuper.(LoxClass)
     if !ok {
-      loxError.TokenError(e.Superclass.Name, "Superclass must be a class.")
+      loxError.TokenError(superclass.Name, "Superclass must be a class.")
+    } else {
+      superclasses = append(superclasses, classed)
     }
   }
   
   environment.Define(&env, e.Name.Lexeme, nil)
 
-  envy := env
-  if e.Superclass != nil {
-    env = environment.MakeEnvironment(&env, "a")
-    environment.Define(&env, "super", superclass)
-  }
+  //envy := env
+  //if len(superclasses) > 0 {
+  //  env = environment.MakeEnvironment(&env, "a")
+  //  environment.Define(&env, "super", superclasses[0])
+  //}
 
   methods := make(map[string]LoxFunction)
   for _, method := range e.Methods {
@@ -163,12 +164,11 @@ func (e Class) VisitStmt(env environment.Environment) error {
     getters[getter.Name.Lexeme] = LoxFunction{getter, env, false}
   }
 
-  super, _ := superclass.(LoxClass)
-  class := LoxClass{LoxInstance{nil, staticMethods}, e.Name, &super, methods, getters}
+  class := LoxClass{LoxInstance{nil, staticMethods}, e.Name, superclasses, methods, getters}
 
-  if superclass != nil {
-    env = envy
-  }
+  //if superclass != nil {
+  //  env = envy
+  //}
   environment.Assign(&env, e.Name, class)
   return nil
 }

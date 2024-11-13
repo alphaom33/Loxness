@@ -43,6 +43,15 @@ func (e Block) VisitScope(env environment.Environment) {
   endScope()
 }
 
+func containsSelf(class Class) bool {
+  for _, superclass := range class.Superclasses {
+    if superclass.Name == class.Name {
+      return true
+    }
+  }
+  return false
+}
+
 func (e Class) VisitScope(env environment.Environment) {
   enclosingClass := currentClass
   currentClass = classtype.CLASS
@@ -50,18 +59,19 @@ func (e Class) VisitScope(env environment.Environment) {
   declare(e.Name)
   define(e.Name)
 
-  if e.Superclass != nil && e.Name.Lexeme == e.Superclass.Name.Lexeme {
-    loxError.TokenError(e.Superclass.Name, "A class can't inherit from itself")
+  if  containsSelf(e) {
+    loxError.TokenError(e.Name, "A class can't inherit from itself")
   }
 
-  if e.Superclass != nil {
-    resolveExpr(env, *e.Superclass)
+  for _, superclass := range e.Superclasses {
+    currentClass = classtype.SUBCLASS
+    resolveExpr(env, superclass)
   }
 
-  if e.Superclass != nil {
-    beginScope()
-    scopes.Ack("super", varusage.INITIALIZED)
-  }
+  // if e.Superclass != nil {
+  //   beginScope()
+  //   scopes.Ack("super", varusage.INITIALIZED)
+  // }
 
   beginScope()
   scopes.Ack("this", varusage.INITIALIZED)
@@ -84,7 +94,7 @@ func (e Class) VisitScope(env environment.Environment) {
 
   endScope()
 
-  if e.Superclass != nil {endScope()}
+  //if e.Superclass != nil {endScope()}
   
   currentClass = enclosingClass
 }
@@ -183,6 +193,12 @@ func (e Set) VisitScope(env environment.Environment) {
 }
 
 func (e Super) VisitScope(env environment.Environment) {
+  if currentClass == classtype.NONE {
+    loxError.TokenError(e.Keyword, "Can't use 'super' outside of a class.")
+  } else if currentClass == classtype.CLASS {
+    loxError.TokenError(e.Keyword, "Can't use 'super' in a class with no superclass.")
+  }
+  
   resolveLocal(e, e.Keyword)
 }
 

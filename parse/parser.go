@@ -50,10 +50,13 @@ func classDeclaration() (Stmt, error) {
     name, err := consume(token.IDENTIFIER, "Expect class name.")
     if err != nil {return nil, err}
 
-    var superclass *interpret.Variable
+    var superclasses []interpret.Variable
     if match(token.LESS) {
-        consume(token.IDENTIFIER, "Expect superclass name.")
-        superclass = &interpret.Variable{previous()}
+        for i := true; i; i = match(token.COMMA) {
+            _, err = consume(token.IDENTIFIER, "Expect superclass name.")
+            if err != nil {return nil, err}
+            superclasses = append(superclasses, interpret.Variable{previous()})
+        }
     }
     
     _, err = consume(token.LEFT_BRACE, "Expect '{' before class body.")
@@ -86,7 +89,7 @@ func classDeclaration() (Stmt, error) {
     _, err = consume(token.RIGHT_BRACE, "Expect '}' after class body.")
     if err != nil {return nil, err}
 
-    return Class{name, superclass, methods, staticMethods, getters}, nil
+    return Class{name, superclasses, methods, staticMethods, getters}, nil
 }
 
 func function(kind string) (Function, error) {
